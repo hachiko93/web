@@ -1,0 +1,38 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package domain;
+
+/**
+ *
+ * @author Hachiko
+ */
+public class TextMessage implements Content{
+    
+    private String text;
+
+    public TextMessage(String text) {
+        this.text = text;
+    }
+
+    public TextMessage() {
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    @Override
+    public String toString() {
+        return text;
+    }
+    
+    
+    
+}
