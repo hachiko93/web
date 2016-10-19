@@ -33,7 +33,7 @@
                         </div>
                         
                         <a href="javascript:;" class="search" onclick="addRoomBySearchValue()"></a>
-                        <a href="javascript:;" class="adduser" onclick="addUser()"></a>
+                       <!-- <a href="javascript:;" class="adduser" onclick="addUser()"></a> -->
                         <a href="../action/logout" class="logout" onclick="closeSocket()"></a>
                         <input id="hidden" type="hidden" value="${user.email}">
                         <br>
@@ -49,7 +49,7 @@
                                 onmouseup="hideMenu();"
                                 oncontextmenu="showMenu(this, event);">
                                 
-                                <input class="hiddenRoom" type="hidden" value=" ${room.roomID} ">
+                                <input class="hiddenRoom" type="hidden" value="${room.roomID}">
                                 <img src="/web/img/images.png" alt="" />
                                 <span class="name">${room.name}</span>
                                 <span class="time">${room.messageList.get(messageList.size()).getFormatedTime()}</span>
@@ -97,6 +97,9 @@
                 <tr>
                     <td>
                         <div onclick="deleteRoom()" class="contextItem">Delete</div>
+                    </td>
+                    <td>
+                        <div onclick="addUserToRoom()" class="contextItem">Add User</div>
                     </td>
                 </tr>
             </table>

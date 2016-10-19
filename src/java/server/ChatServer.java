@@ -56,7 +56,9 @@ public class ChatServer {
             };
 
             user = OnlineUsersCollection.getInstance().getUser(chatMessage.getFrom1().getEmail());
-            room = KolekcijaSoba.getInstance().getRoom(chatMessage.getIn1().getRoomID());
+            if (chatMessage.getIn1().getRoomID() != null) {
+                room = KolekcijaSoba.getInstance().getRoom(chatMessage.getIn1().getRoomID());
+            }
 
             if (chatMessage.getType() == MessageType.LOGIN) {
                 user.setSession(session);
@@ -90,17 +92,16 @@ public class ChatServer {
                 //DatabaseBroker.getInstance().deleteUserFromRoom(user, room);
             }
             if (chatMessage.getType() == MessageType.SEND_MESSAGE) {
+                chatMessage.setReceived(new Date());
                 room.sendMessage(chatMessage, user);
                 //DatabaseBroker.getInstance().addMessageToRoom(chatMessage);
             }
             if (chatMessage.getType() == MessageType.SEND_PICTURE) {
-                room = KolekcijaSoba.getInstance().getRoom(chatMessage.getIn1().getRoomID());
-                chatMessage.setContent(chatMessage.getContent());
+                chatMessage.setReceived(new Date());
                 room.sendMessage(chatMessage, user);
             }
             if (chatMessage.getType() == MessageType.SEND_FILE) {
-                room = KolekcijaSoba.getInstance().getRoom(chatMessage.getIn1().getRoomID());
-                chatMessage.setContent(chatMessage.getContent());
+                chatMessage.setReceived(new Date());
                 room.sendMessage(chatMessage, user);
             }
 

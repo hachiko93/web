@@ -127,7 +127,7 @@ public class Room implements Serializable {
         }
 
         for (User user : userList) {
-            if (user.getSession().isOpen() && !user.equals(sender)) {
+            if (user.getSession() != null && user.getSession().isOpen() && !user.equals(sender)) {
                 user.getSession().getAsyncRemote().sendText(jsonMessage);
             }
         }

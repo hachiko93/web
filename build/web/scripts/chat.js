@@ -27,7 +27,7 @@ function openSocket() {
                 };
 
         setStartParametres();
-        send("LOGIN", content, null);
+        send("LOGIN", content, activeRoomID, userEmail);
 
         //vidi sta ovo zapravo radi i skloni ga posto kapiram da ne radi nista
         if (event.data === undefined)
@@ -78,7 +78,7 @@ function closeSocket() {
 
 function writeResponse(text) {
     var chatMessage = JSON.parse(text);
-
+    console.log(chatMessage.type);
     if (chatMessage.type === "ADD_USER_TO_ROOM") {
         var userAdded = chatMessage.from1.email;
 
@@ -94,18 +94,19 @@ function writeResponse(text) {
     if (chatMessage.type === "CREATE_ROOM") {
         makeNewRoom(chatMessage.in1);
     }
-    if (chatMessage.type === "DELETE ROOM") {
+    if (chatMessage.type === "DELETE_ROOM") {
         var sender = chatMessage.from1.email;
 
         if (sender === userEmail) {
             //metoda delete room
+            //deleteRoom();
         } else {
             //salje poruku user left room
             //ako je privatna konverzacija ne salje nista proveri posle
             alertMessage(chatMessage);
         }
     }
-    if (chatMessage.type === "SEND MESSAGE") {
+    if (chatMessage.type === "SEND_MESSAGE") {
         //ispisuje primljenu textualnu poruku
         newMessage(chatMessage);
     }
@@ -137,7 +138,7 @@ function addRoomBySearchValue() {
         "text": ""
     }
 
-    send("CREATE_ROOM", content, room);
+    send("CREATE_ROOM", content, room, userEmail);
     //kontaktiraj server a ne direktno make room
     //makeNewRoom(room);
 }
@@ -232,38 +233,31 @@ function makeNewRoom(room) {
     //send("", "CREATE_ROOM", room.name, 0, "");
 }
 //ovo nije dobro
-function addUser() {
-    if (document.getElementsByClassName("active-chat")[0] === undefined) {
-        makeNewRoom("", "");
-    } else {
-        var user = document.getElementById("search").value;
-        if (user === "" || user === "Room name/User email: ") {
-            return;
-        }
+function addUserToRoom() {
+    //u doradi, bice drugi input koji se pojavljuje kada se klikne add context menu
+    var userToAdd = document.getElementById("search").value;
 
-        var liElements = document.getElementsByClassName("ui-autocomplete")[0].childNodes;
-        var correct = false;
-        for (i = 0; i < liElements.length; i++) {
-            if (liElements[i].childNodes[0].innerHTML === user) {
-                correct = true;
-            }
-        }
-
-        var room = document.getElementById("who").innerHTML;
-        var messages = document.getElementById("messages" + room);
-        var room_id = messages.className.toString().substring(6, 7);
-
-        var div = document.createElement("div");
-        div.className = "bubble me";
-        div.style = "color: grey; background-color: white;";
-        if (!correct) {
-            div.innerHTML = "Incorrect user email";
-        } else {
-            send("", "ADD_USER_TO_ROOM", room, room_id, user);
-            div.innerHTML = user + " was added to the room";
-        }
-        messages.appendChild(div);
+    if (userToAdd === "" || userToAdd === "Room name/User email: ") {
+        return;
     }
+
+    var liElements = document.getElementsByClassName("ui-autocomplete")[0].childNodes;
+    var correct = false;
+    for (i = 0; i < liElements.length; i++) {
+        if (liElements[i].childNodes[0].innerHTML === user) {
+            correct = true;
+        }
+    }
+
+    if (!correct)
+        alertMessage("Incorrect user email");
+
+    var content =
+            {
+                "@class": "domain.TextMessage",
+                "text": ""
+            }
+    send("ADD_USER_TO_ROOM", content, null, userToAdd);
 }
 
 function sendMessage() {
@@ -286,7 +280,12 @@ function sendMessage() {
     div.innerHTML = message + '<small style="color: #999; font-size: 10px;">' + formated + '</small>';
     messageList.appendChild(div);
 
-    send("SEND_MESSAGE", message, activeRoomID, userEmail);
+    var content =
+            {
+                "@class": "domain.TextMessage",
+                "text": message
+            }
+    send("SEND_MESSAGE", content, activeRoomID, userEmail);
     deleteInput(document.getElementById("messageinput"));
 }
 
@@ -305,34 +304,52 @@ function loadfiles(event)
     var file = event.target.files[0];
     var fileType = file["type"];
     var fileName = file.name;
-    console.log(file.name);
+
     var imageTypes = ["image/gif", "image/jpeg", "image/png"];
 
-    var room = document.getElementById("who").innerHTML;
-    var messageList = document.getElementById("messages" + room);
-    var room_id = messageList.className.toString().substring(6, 7);
-    var d = new Date();
-    var formated = " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+    var messagePlaceholder = document.getElementById("messages" + activeRoomID);
+
+    var formated = formatDate(new Date(), "MINUTES");
 
     var div = document.createElement("div");
     div.className = "bubble me";
 
+    var content;
+
     var reader = new FileReader();
     reader.onload = function (event) {
         if ($.inArray(fileType, imageTypes) < 0) {
-            div.innerHTML = '<a href=' + event.target.result + ' download=' + fileName + '>' + '<img src="/web/img/file.png" width="30px" height="30px"/> </a>' + fileName;
-            var data = event.target.result.replace("data:" + file.type + ";base64,", '');
-            send(data, "SEND_FILE", room, room_id, "");
+            //zasto ne radi download?
+            div.innerHTML = '<a href=' + event.target.result + ' download=' + fileName + '>' + '<img src="/web/img/file.png" width="30px" height="30px"/> </a>' + fileName + '<small style="color: #999; font-size: 10px;">' + formated + '</small>';
+            //var data = event.target.result.replace("data:" + file.type + ";base64,", '');
+            console.log(event.target.result);
+            content =
+                    {
+                        "@class": "domain.File",
+                        "name": fileName,
+                        "fileType": fileType,
+                        "base64Content": event.target.result
+                    }
+            send("SEND_FILE", content, activeRoomID, userEmail);
         } else {
-            div.innerHTML = '<a href=' + event.target.result + ' download>' + '<img src=' + event.target.result + ' style="width: 300px; hight: 300px"> </a>' + '<small style="color: #999; font-size: 10px;">' + formated + '</small>';
-            var data = event.target.result.replace("data:" + file.type + ";base64,", '');
-            send(data, "SEND_PICTURE", room, room_id, "");
+
+            div.innerHTML = '<a href=' + event.target.result + ' download=' + fileName + '>' + '<img src=' + event.target.result + ' style="width: 300px; hight: 300px"> </a>' + '<small style="color: #999; font-size: 10px;">' + formated + '</small>';
+            //var data = event.target.result.replace("data:" + file.type + ";base64,", '');
+
+            content =
+                    {
+                        "@class": "domain.Picture",
+                        "name": fileName,
+                        "pictureType": fileType,
+                        "base64Content": event.target.result
+                    }
+            send("SEND_PICTURE", content, activeRoomID, userEmail);
         }
 
 
     };
     reader.readAsDataURL(file);
-    messageList.appendChild(div);
+    messagePlaceholder.appendChild(div);
 
 }
 
@@ -364,12 +381,21 @@ function loadProfilePicture(event)
     var read = new FileReader();
     read.onload = function (event) {
         if ($.inArray(fileType, imageTypes) < 0) {
-            //obrada greske
             return;
         }
         var img = document.getElementById("profile");
         img.src = event.target.result;
-        //send(img.src, "CHANGE_PROFILE_PICTURE", "", "", "");
+
+        //u doradi
+        //var data = event.target.result.replace("data:" + file.type + ";base64,", '');
+        var content =
+                {
+                    "@class": "domain.Picture",
+                    "name": fileName,
+                    "pictureType": fileType,
+                    "base64Content": event.target.result
+                }
+        //send("CHANGE_PROFILE_PICTURE", content);
     };
     read.readAsDataURL(file);
 }
@@ -392,10 +418,15 @@ function deleteRoom() {
     clicked.parentNode.removeChild(clicked);
     var room = clicked.dataset.chat;
     var messages = document.getElementById("messages" + room);
-    var room_id = messages.className.toString().substring(6, 7);
     var deleting = messages.parentNode;
     deleting.parentNode.removeChild(deleting);
-    send("", "DELETE_ROOM", "", room_id, "");
+
+    var content =
+            {
+                "@class": "domain.TextMessage",
+                "text": ""
+            }
+    send("DELETE_ROOM", content, activeRoomID, userEmail);
 }
 
 function alertMessage(message) {
@@ -410,7 +441,7 @@ function alertMessage(message) {
 
 function newMessage(message) {
 
-    var messages = document.getElementById("messages" + messages.in1.roomID);
+    var messages = document.getElementById("messages" + message.in1.roomID);
 
     var date = formatDate(new Date(), "MINUTES");
 
